@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Page</title>
+    <script src="http://localhost:3000/socket.io/socket.io.js"></script>
+</head>
+
+<body>
+    <script>
+        const socket = io("ws://localhost:3000");
+
+        function sendHello() {
+            socket.emit("hello")
+        }
+
+        socket.on("message", (e) => {
+            console.log(e)
+        })
+        
+    </script>
+    <button class="send" onclick="sendHello()">send hello</button>
+    <div class="messages">htrd</div>
+
+</body>
+
+</html>
