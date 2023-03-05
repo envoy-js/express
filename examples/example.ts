@@ -46,6 +46,9 @@ envoy.deserializeUser((res, req, next) => {
     rooms[0].users = Array.from(newUsers)
     return newUser
 })
+envoy.deserializeMessage((socket, partialMessage: any) => {
+    return {id: v4(), value: partialMessage.value, roomid: partialMessage.roomid, author: socket.user}
+})
 
 envoy.createRoom((room: Room) => {
     rooms.push(room)
