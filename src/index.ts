@@ -1,13 +1,14 @@
 import {IncomingMessage, Server as htserver} from "http";
 import {Server} from "socket.io";
-import {Express, Request, Response, NextFunction} from 'express';
 
 
-declare global {
-    namespace Express {
-        interface Request {
-            user: any
-        }
+interface UserIncomingMessage extends IncomingMessage {
+    user: any
+}
+
+declare module 'socket.io' {
+    interface Socket {
+        user: any
     }
 }
 
@@ -59,7 +60,7 @@ export default class Envoy<UserType> {
     // store actual socket
     options: Options<UserType>
     io: Server
-    deserializeUserFunction: null | ((req: Request, res: Response, next: NextFunction) => UserType) = null
+    deserializeUserFunction: null | ((req: IncomingMessage, res: any, next: any) => UserType) = null
 
     constructor(options: Options<UserType>, httpServer: htserver) {
         this.options = options
@@ -67,16 +68,16 @@ export default class Envoy<UserType> {
         this.io = new Server(httpServer);
         const instance: Envoy<UserType> = this
 
-        this.io.engine.use((req: Request, res: Response, next: NextFunction) => {
-            req.user = this.deserializeUserFunction ? this.deserializeUserFunction : null
+        this.io.use((socket, next) => {
+            socket.user = this.deserializeUserFunction ? this.deserializeUserFunction(socket.request, {}, next) : null
         })
 
         this.io.on("connection", (socket) => {
-            new Connection(socket, socket.request.session, instance);
+            new Connection(socket, socket.user, instance);
         });
     }
 
-    deserializeUser(fn: (req: IncomingMessage, res: Response, next: NextFunction) => UserType) {
+    deserializeUser(fn: typeof this.deserializeUserFunction) {
         this.deserializeUserFunction = fn
     }
 
