@@ -1,5 +1,5 @@
-import { IncomingMessage, Server as htserver } from "http";
-import { Server } from "socket.io";
+import {IncomingMessage, Server as htserver} from "http";
+import {Server} from "socket.io";
 
 declare module 'socket.io' {
     interface Socket {
@@ -27,11 +27,9 @@ class Connection<UserType, RoomType, MessageType> {
             console.log(message, user)
             if (envoy.getUsersInRoomFunction) {
                 for (const user of envoy.getUsersInRoomFunction(message)) {
-                    const listConnections = envoy.connections.get(user[envoy.options.userKey])
-                    if (listConnections) {
-                        for (const connection of listConnections) {
-                            connection.socket.emit("serverMessage", message)
-                        }
+                    const listConnections = envoy.connections.get(user[envoy.options.userKey]) || []
+                    for (const connection of listConnections) {
+                        connection.socket.emit("serverMessage", message)
                     }
                 }
             }
@@ -67,6 +65,7 @@ export default class Envoy<UserType, RoomType, MessageType> {
     leaveRoomFunction: null | ((room: RoomType, user: UserType) => void) = null
     createRoomFunction: null | ((room: RoomType) => void) = null
     connections: Map<any, Connection<UserType, RoomType, MessageType>[]> = new Map()
+
     constructor(options: Options<UserType, RoomType, MessageType>, httpServer: htserver) {
         this.options = options
         httpServer

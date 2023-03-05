@@ -1,7 +1,7 @@
 import Envoy from "@envoy/express"
 import express from "express";
-import { createServer } from "http";
-import { v4 } from 'uuid';
+import {createServer} from "http";
+import {v4} from 'uuid';
 
 const app = express();
 const httpServer = createServer(app);
@@ -41,7 +41,9 @@ envoy.deserializeUser((res, req, next) => {
         username: id,
         id: id
     }
-    rooms[0].users.push(newUser)
+    const newUsers = new Set(rooms[0].users)
+    newUsers.add(newUser)
+    rooms[0].users = Array.from(newUsers)
     return newUser
 })
 
@@ -52,26 +54,24 @@ envoy.createRoom((room: Room) => {
 envoy.joinRoom((room: Room, user: User) => {
     for (const r of rooms) {
         if (room === r) {
-            r.users.push(user)
+            const newUsers = new Set(rooms[0].users)
+            newUsers.add(user)
+            r.users = Array.from(newUsers)
         }
     }
 })
 
 envoy.leaveRoom((room: Room, user: User) => {
-    
+
 })
 
-envoy.getRooms((user: User):Room[] => {
+envoy.getRooms((user: User): Room[] => {
     return rooms
 })
 
-envoy.getUsersInRoom((message: Message):User[] => {
-    for (const r of rooms) {
-        if (message.roomid === r.id) {
-            return r.users
-        }
-    }
-    return []
+envoy.getUsersInRoom((message: Message): User[] => {
+    console.log(rooms[0])
+    return rooms[0].users
 })
 
 httpServer.listen(port, () => {
