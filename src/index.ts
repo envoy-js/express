@@ -1,11 +1,6 @@
 import {IncomingMessage, Server as htserver} from "http";
 import {Server} from "socket.io";
 
-
-interface UserIncomingMessage extends IncomingMessage {
-    user: any
-}
-
 declare module 'socket.io' {
     interface Socket {
         user: any
@@ -56,8 +51,6 @@ export class Connection<UserType,RoomType> {
 }
 
 export default class Envoy<UserType,RoomType> {
-    // .use to add middleware
-    // store actual socket
     options: Options<UserType,RoomType>
     io: Server
     deserializeUserFunction: null | ((req: IncomingMessage, res: any, next: any) => UserType) = null
@@ -76,8 +69,8 @@ export default class Envoy<UserType,RoomType> {
             new Connection(socket, socket.user, instance);
         });
     }
-    
-    getRooms(fn: (req: UserType) => RoomType) {
+
+    getRooms(fn: typeof this.getRoomsFunction) {
         this.getRoomsFunction = fn
     }
 
