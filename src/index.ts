@@ -47,6 +47,12 @@ class Connection<UserType,RoomType,MessageType> {
                 envoy.leaveRoomFunction(room)
             }
         })
+
+        socket.on("clientCreateRoom", (room: RoomType) => {
+            if (envoy.createRoomFunction) {
+                envoy.createRoomFunction(room)
+            }
+        })
     }
 }
 
@@ -58,6 +64,7 @@ export default class Envoy<UserType,RoomType,MessageType> {
     getUsersInRoomFunction: null | ((message: MessageType) => UserType[]) = null
     addRoomFunction: null | ((room: RoomType) => void) = null
     leaveRoomFunction: null | ((room: RoomType) => void) = null
+    createRoomFunction: null | ((room: RoomType) => void) = null
     connections: Map<any, Connection<UserType,RoomType,MessageType>[]> = new Map()
     constructor(options: Options<UserType,RoomType,MessageType>, httpServer: htserver) {
         this.options = options
@@ -91,6 +98,10 @@ export default class Envoy<UserType,RoomType,MessageType> {
 
     leaveRoom(fn: typeof this.leaveRoomFunction) {
         this.leaveRoomFunction = fn
+    }
+
+    createRoom(fn: typeof this.createRoomFunction) {
+        this.createRoomFunction = fn
     }
 
     getRooms(fn: typeof this.getRoomsFunction) {
