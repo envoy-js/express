@@ -23,6 +23,10 @@
         socket.on("serverMessage", (e) => {
             console.log(e)
         })
+
+        socket.on("allRooms", (e) => {
+            console.log(e)
+        })
         
     </script>
     <button class="send" onclick="sendHello()">send hello</button>

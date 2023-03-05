@@ -86,6 +86,10 @@ export default class Envoy<UserType, RoomType, MessageType> {
         this.io.on("connection", (socket) => {
             const newConnection = new Connection(socket, socket.user, instance);
             const listConnections = this.connections.get(socket.user[this.options.userKey])
+            if (this.getRoomsFunction) {
+                const rooms = this.getRoomsFunction(socket.user)
+                socket.emit("allRooms", rooms)
+            }
             if (listConnections === undefined) {
                 this.connections.set(socket.user[this.options.userKey], [newConnection])
             } else {

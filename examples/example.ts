@@ -62,7 +62,7 @@ envoy.leaveRoom((room: Room, user: User) => {
 })
 
 envoy.getRooms((user: User):Room[] => {
-    return []
+    return rooms
 })
 
 envoy.getUsersInRoom((message: Message):User[] => {
