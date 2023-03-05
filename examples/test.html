@@ -13,17 +13,19 @@
     <script>
         const socket = io("ws://localhost:3000");
 
+        // socket.emit("joinRoom", ({id:"1", users:[] }, {username:"big", id: "3"}))
+
         function sendHello() {
-            socket.emit("hello")
+            console.log("button")
+            socket.emit("clientMessage", {value: "hello", id: "4", roomid: "1"})
         }
 
-        socket.on("message", (e) => {
+        socket.on("serverMessage", (e) => {
             console.log(e)
         })
         
     </script>
     <button class="send" onclick="sendHello()">send hello</button>
-    <div class="messages">htrd</div>
 
 </body>
 

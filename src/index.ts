@@ -1,5 +1,5 @@
-import {IncomingMessage, Server as htserver} from "http";
-import {Server} from "socket.io";
+import { IncomingMessage, Server as htserver } from "http";
+import { Server } from "socket.io";
 
 declare module 'socket.io' {
     interface Socket {
@@ -7,17 +7,18 @@ declare module 'socket.io' {
     }
 }
 
-export interface Options<UserType,RoomType,MessageType> {
+export interface Options<UserType, RoomType, MessageType> {
     userKey: keyof UserType
 }
 
-class Connection<UserType,RoomType,MessageType> {
+class Connection<UserType, RoomType, MessageType> {
     user: UserType | null
     io: Server
     socket: any
-    envoy: Envoy<UserType,RoomType,MessageType>
+    envoy: Envoy<UserType, RoomType, MessageType>
 
-    constructor(socket: any, user: UserType | null, envoy: Envoy<UserType,RoomType,MessageType>) {
+    constructor(socket: any, user: UserType | null, envoy: Envoy<UserType, RoomType, MessageType>) {
+        console.log("constructing")
         this.user = user
         this.io = envoy.io
         this.socket = socket
@@ -36,15 +37,15 @@ class Connection<UserType,RoomType,MessageType> {
             }
         })
 
-        socket.on("clientJoinRoom", (room: RoomType) => {
-            if (envoy.addRoomFunction) {
-                envoy.addRoomFunction(room)
+        socket.on("clientJoinRoom", (room: RoomType, user: UserType) => {
+            if (envoy.joinRoomFunction) {
+                envoy.joinRoomFunction(room, user)
             }
         })
 
-        socket.on("clientLeaveRoom", (room: RoomType) => {
+        socket.on("clientLeaveRoom", (room: RoomType, user: UserType) => {
             if (envoy.leaveRoomFunction) {
-                envoy.leaveRoomFunction(room)
+                envoy.leaveRoomFunction(room, user)
             }
         })
 
@@ -56,25 +57,30 @@ class Connection<UserType,RoomType,MessageType> {
     }
 }
 
-export default class Envoy<UserType,RoomType,MessageType> {
-    options: Options<UserType,RoomType,MessageType>
+export default class Envoy<UserType, RoomType, MessageType> {
+    options: Options<UserType, RoomType, MessageType>
     io: Server
     deserializeUserFunction: null | ((req: IncomingMessage, res: any, next: any) => UserType) = null
     getRoomsFunction: null | ((user: UserType) => RoomType[]) = null
     getUsersInRoomFunction: null | ((message: MessageType) => UserType[]) = null
-    addRoomFunction: null | ((room: RoomType) => void) = null
-    leaveRoomFunction: null | ((room: RoomType) => void) = null
+    joinRoomFunction: null | ((room: RoomType, user: UserType) => void) = null
+    leaveRoomFunction: null | ((room: RoomType, user: UserType) => void) = null
     createRoomFunction: null | ((room: RoomType) => void) = null
-    connections: Map<any, Connection<UserType,RoomType,MessageType>[]> = new Map()
-    constructor(options: Options<UserType,RoomType,MessageType>, httpServer: htserver) {
+    connections: Map<any, Connection<UserType, RoomType, MessageType>[]> = new Map()
+    constructor(options: Options<UserType, RoomType, MessageType>, httpServer: htserver) {
         this.options = options
         httpServer
-        this.io = new Server(httpServer);
-        const instance: Envoy<UserType,RoomType,MessageType> = this
+        this.io = new Server(httpServer, {
+            cors: {
+                origin: "*",
+            }
+        })
+        const instance: Envoy<UserType, RoomType, MessageType> = this
 
 
         this.io.use((socket, next) => {
             socket.user = this.deserializeUserFunction ? this.deserializeUserFunction(socket.request, {}, next) : null
+            next()
         })
 
         this.io.on("connection", (socket) => {
@@ -92,8 +98,8 @@ export default class Envoy<UserType,RoomType,MessageType> {
         this.getUsersInRoomFunction = fn
     }
 
-    addRoom(fn: typeof this.addRoomFunction) {
-        this.addRoomFunction = fn
+    joinRoom(fn: typeof this.joinRoomFunction) {
+        this.joinRoomFunction = fn
     }
 
     leaveRoom(fn: typeof this.leaveRoomFunction) {
