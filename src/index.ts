@@ -12,7 +12,7 @@ declare module 'socket.io' {
     }
 }
 
-export interface Options<UserType> {
+export interface Options<UserType,RoomType> {
     userKey: keyof UserType
 }
 
@@ -34,13 +34,13 @@ interface Message<UserType> {
     time: Date
 }
 
-export class Connection<UserType> {
+export class Connection<UserType,RoomType> {
     user: UserType | null
     io: Server
     socket: any
-    envoy: Envoy<UserType>
+    envoy: Envoy<UserType,RoomType>
 
-    constructor(socket: any, user: UserType | null, envoy: Envoy<UserType>) {
+    constructor(socket: any, user: UserType | null, envoy: Envoy<UserType,RoomType>) {
         this.user = user
         this.io = envoy.io
         this.socket = socket
@@ -55,18 +55,18 @@ export class Connection<UserType> {
     }
 }
 
-export default class Envoy<UserType> {
+export default class Envoy<UserType,RoomType> {
     // .use to add middleware
     // store actual socket
-    options: Options<UserType>
+    options: Options<UserType,RoomType>
     io: Server
     deserializeUserFunction: null | ((req: IncomingMessage, res: any, next: any) => UserType) = null
-
-    constructor(options: Options<UserType>, httpServer: htserver) {
+    getRoomsFunction: null | ((req: UserType) => RoomType) = null
+    constructor(options: Options<UserType,RoomType>, httpServer: htserver) {
         this.options = options
         httpServer
         this.io = new Server(httpServer);
-        const instance: Envoy<UserType> = this
+        const instance: Envoy<UserType,RoomType> = this
 
         this.io.use((socket, next) => {
             socket.user = this.deserializeUserFunction ? this.deserializeUserFunction(socket.request, {}, next) : null
@@ -76,10 +76,12 @@ export default class Envoy<UserType> {
             new Connection(socket, socket.user, instance);
         });
     }
+    
+    getRooms(fn: (req: UserType) => RoomType) {
+        this.getRoomsFunction = fn
+    }
 
     deserializeUser(fn: typeof this.deserializeUserFunction) {
         this.deserializeUserFunction = fn
     }
-
-
 }
