@@ -1,5 +1,5 @@
 {
-  "name": "express",
+  "name": "@envoy-js/express",
   "version": "1.0.0",
   "repository": "https://github.com/envoy-js/express.git",
   "author": "Pumpkintitan <pumpkintitan11@gmail.com>",
