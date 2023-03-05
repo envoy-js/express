@@ -7,67 +7,90 @@ declare module 'socket.io' {
     }
 }
 
-export interface Options<UserType,RoomType> {
+export interface Options<UserType,RoomType,MessageType> {
     userKey: keyof UserType
 }
 
-interface Room<UserType> {
-    id: string,
-    members: UserType[]
-    image: string
-}
-
-export interface User {
-    id: string,
-    username: string,
-}
-
-interface Message<UserType> {
-    id: string,
-    user: UserType,
-    value: string,
-    time: Date
-}
-
-export class Connection<UserType,RoomType> {
+class Connection<UserType,RoomType,MessageType> {
     user: UserType | null
     io: Server
     socket: any
-    envoy: Envoy<UserType,RoomType>
+    envoy: Envoy<UserType,RoomType,MessageType>
 
-    constructor(socket: any, user: UserType | null, envoy: Envoy<UserType,RoomType>) {
+    constructor(socket: any, user: UserType | null, envoy: Envoy<UserType,RoomType,MessageType>) {
         this.user = user
         this.io = envoy.io
         this.socket = socket
         this.envoy = envoy
 
-        socket.on("clientMessage", (value: string, roomid: string) => {
-
+        socket.on("clientMessage", (message: MessageType) => {
+            if (envoy.getUsersInRoomFunction) {
+                for (const user of envoy.getUsersInRoomFunction(message)) {
+                    const listConnections = envoy.connections.get(user[envoy.options.userKey])
+                    if (listConnections) {
+                        for (const connection of listConnections) {
+                            connection.socket.emit("serverMessage", message)
+                        }
+                    }
+                }
+            }
         })
-        socket.on("clientJoinRoom", (roomid: string) => {
 
+        socket.on("clientJoinRoom", (room: RoomType) => {
+            if (envoy.addRoomFunction) {
+                envoy.addRoomFunction(room)
+            }
+        })
+
+        socket.on("clientLeaveRoom", (room: RoomType) => {
+            if (envoy.leaveRoomFunction) {
+                envoy.leaveRoomFunction(room)
+            }
         })
     }
 }
 
-export default class Envoy<UserType,RoomType> {
-    options: Options<UserType,RoomType>
+export default class Envoy<UserType,RoomType,MessageType> {
+    options: Options<UserType,RoomType,MessageType>
     io: Server
     deserializeUserFunction: null | ((req: IncomingMessage, res: any, next: any) => UserType) = null
-    getRoomsFunction: null | ((req: UserType) => RoomType) = null
-    constructor(options: Options<UserType,RoomType>, httpServer: htserver) {
+    getRoomsFunction: null | ((user: UserType) => RoomType[]) = null
+    getUsersInRoomFunction: null | ((message: MessageType) => UserType[]) = null
+    addRoomFunction: null | ((room: RoomType) => void) = null
+    leaveRoomFunction: null | ((room: RoomType) => void) = null
+    connections: Map<any, Connection<UserType,RoomType,MessageType>[]> = new Map()
+    constructor(options: Options<UserType,RoomType,MessageType>, httpServer: htserver) {
         this.options = options
         httpServer
         this.io = new Server(httpServer);
-        const instance: Envoy<UserType,RoomType> = this
+        const instance: Envoy<UserType,RoomType,MessageType> = this
+
 
         this.io.use((socket, next) => {
             socket.user = this.deserializeUserFunction ? this.deserializeUserFunction(socket.request, {}, next) : null
         })
 
         this.io.on("connection", (socket) => {
-            new Connection(socket, socket.user, instance);
+            const newConnection = new Connection(socket, socket.user, instance);
+            const listConnections = this.connections.get(socket.user[this.options.userKey])
+            if (listConnections === undefined) {
+                this.connections.set(socket.user[this.options.userKey], [newConnection])
+            } else {
+                listConnections.push(newConnection)
+            }
         });
+    }
+
+    getUsersInRoom(fn: typeof this.getUsersInRoomFunction) {
+        this.getUsersInRoomFunction = fn
+    }
+
+    addRoom(fn: typeof this.addRoomFunction) {
+        this.addRoomFunction = fn
+    }
+
+    leaveRoom(fn: typeof this.leaveRoomFunction) {
+        this.leaveRoomFunction = fn
     }
 
     getRooms(fn: typeof this.getRoomsFunction) {
