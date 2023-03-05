@@ -88,7 +88,7 @@ export default class Envoy<UserType, RoomType, MessageType> {
             const listConnections = this.connections.get(socket.user[this.options.userKey])
             if (this.getRoomsFunction) {
                 const rooms = this.getRoomsFunction(socket.user)
-                socket.emit("allRooms", rooms)
+                socket.emit("allRooms", rooms.map((room) => ({messages: [], room})))
             }
             if (listConnections === undefined) {
                 this.connections.set(socket.user[this.options.userKey], [newConnection])

@@ -1,6 +1,6 @@
 {
   "name": "@envoy-js/express",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "repository": "https://github.com/envoy-js/express.git",
   "author": "Pumpkintitan <pumpkintitan11@gmail.com>",
   "license": "MIT",
