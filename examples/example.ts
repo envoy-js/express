@@ -13,7 +13,8 @@ const options = {
 
 interface User {
     username: string
-    id: string
+    id: string,
+    avatar: string
 }
 
 interface Message {
@@ -24,7 +25,7 @@ interface Message {
 
 interface Room {
     id: string
-    users: User[]
+    users: User[],
 }
 
 const newRoom = {
@@ -32,14 +33,26 @@ const newRoom = {
     users: []
 }
 const rooms: Room[] = [newRoom]
+const history: Message[] = []
 
 const envoy = new Envoy<User, Room, Message>(options, httpServer)
+
+const avatars = [
+    'https://thesocietypages.org/socimages/files/2009/05/flickr-buddyicon.jpg',
+    'https://thesocietypages.org/socimages/files/2009/05/hotmail.png',
+    'https://thesocietypages.org/socimages/files/2009/05/googleyeyes.png',
+    'https://thesocietypages.org/socimages/files/2009/05/vimeo.jpg',
+    'https://thesocietypages.org/socimages/files/2009/05/myspacenophoto.jpg',
+    'https://thesocietypages.org/socimages/files/2009/05/nomugshot-large.png',
+    'https://thesocietypages.org/socimages/files/2009/05/nopic_192.gif'
+]
 
 envoy.deserializeUser((res, req, next) => {
     const id = v4()
     const newUser = {
         username: id,
-        id: id
+        id: id,
+        avatar: avatars[Math.floor(Math.random() * avatars.length)]
     }
     const newUsers = new Set(rooms[0].users)
     newUsers.add(newUser)
@@ -47,7 +60,9 @@ envoy.deserializeUser((res, req, next) => {
     return newUser
 })
 envoy.deserializeMessage((socket, partialMessage: any) => {
-    return {id: v4(), value: partialMessage.value, roomid: partialMessage.roomid, author: socket.user}
+    const msg = {id: v4(), value: partialMessage.value, roomid: partialMessage.roomid, author: socket.user}
+    history.push(msg)
+    return msg
 })
 
 envoy.createRoom((room: Room) => {
@@ -75,6 +90,10 @@ envoy.getRooms((user: User): Room[] => {
 envoy.getUsersInRoom((message: Message): User[] => {
     console.log(rooms[0])
     return rooms[0].users
+})
+
+envoy.getRoomHistory((room: Room) => {
+    return history
 })
 
 httpServer.listen(port, () => {

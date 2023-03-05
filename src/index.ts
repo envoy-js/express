@@ -1,4 +1,4 @@
-import { IncomingMessage, Server as htserver } from "http";
+import {IncomingMessage, Server as htserver} from "http";
 import {Server, Socket} from "socket.io";
 
 declare module 'socket.io' {
@@ -23,7 +23,7 @@ class Connection<UserType, RoomType, MessageType> {
         this.socket = socket
         this.envoy = envoy
 
-        socket.emit("userLogin", () => { return this.user })
+        socket.emit("userLogin", this.user)
 
         socket.on("clientMessage", (value: any) => {
             if (envoy.deserializeMessageFunction) {
@@ -64,6 +64,7 @@ export default class Envoy<UserType, RoomType, MessageType> {
     io: Server
     deserializeUserFunction: null | ((req: IncomingMessage, res: any, next: any) => UserType) = null
     deserializeMessageFunction: null | ((socket: Socket, partialMessage: any) => MessageType) = null
+    getRoomHistoryFunction: null | ((room: RoomType) => MessageType[]) = null
     getRoomsFunction: null | ((user: UserType) => RoomType[]) = null
     getUsersInRoomFunction: null | ((message: MessageType) => UserType[]) = null
     joinRoomFunction: null | ((room: RoomType, user: UserType) => void) = null
@@ -93,7 +94,10 @@ export default class Envoy<UserType, RoomType, MessageType> {
             const listConnections = this.connections.get(socket.user[this.options.userKey])
             if (this.getRoomsFunction) {
                 const rooms = this.getRoomsFunction(socket.user)
-                socket.emit("allRooms", rooms.map((room) => ({ messages: [], room })))
+                socket.emit("allRooms", rooms.map((room) => ({
+                    messages: this.getRoomHistoryFunction ? this.getRoomHistoryFunction(room) : [],
+                    room
+                })))
             }
             if (listConnections === undefined) {
                 this.connections.set(socket.user[this.options.userKey], [newConnection])
@@ -129,5 +133,9 @@ export default class Envoy<UserType, RoomType, MessageType> {
 
     deserializeMessage(fn: typeof this.deserializeMessageFunction) {
         this.deserializeMessageFunction = fn
+    }
+
+    getRoomHistory(fn: typeof this.getRoomHistoryFunction) {
+        this.getRoomHistoryFunction = fn
     }
 }
