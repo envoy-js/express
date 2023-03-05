@@ -18,13 +18,13 @@ class Connection<UserType, RoomType, MessageType> {
     envoy: Envoy<UserType, RoomType, MessageType>
 
     constructor(socket: any, user: UserType | null, envoy: Envoy<UserType, RoomType, MessageType>) {
-        console.log("constructing")
         this.user = user
         this.io = envoy.io
         this.socket = socket
         this.envoy = envoy
 
         socket.on("clientMessage", (message: MessageType) => {
+            console.log(message, user)
             if (envoy.getUsersInRoomFunction) {
                 for (const user of envoy.getUsersInRoomFunction(message)) {
                     const listConnections = envoy.connections.get(user[envoy.options.userKey])
@@ -85,6 +85,7 @@ export default class Envoy<UserType, RoomType, MessageType> {
 
         this.io.on("connection", (socket) => {
             const newConnection = new Connection(socket, socket.user, instance);
+            console.log("Connection created: ", socket.user)
             const listConnections = this.connections.get(socket.user[this.options.userKey])
             if (this.getRoomsFunction) {
                 const rooms = this.getRoomsFunction(socket.user)
