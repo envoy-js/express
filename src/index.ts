@@ -1,5 +1,5 @@
-import {IncomingMessage, Server as htserver} from "http";
-import {Server} from "socket.io";
+import { IncomingMessage, Server as htserver } from "http";
+import { Server } from "socket.io";
 
 declare module 'socket.io' {
     interface Socket {
@@ -23,13 +23,17 @@ class Connection<UserType, RoomType, MessageType> {
         this.socket = socket
         this.envoy = envoy
 
-        socket.on("clientMessage", (message: MessageType) => {
-            console.log(message, user)
-            if (envoy.getUsersInRoomFunction) {
-                for (const user of envoy.getUsersInRoomFunction(message)) {
-                    const listConnections = envoy.connections.get(user[envoy.options.userKey]) || []
-                    for (const connection of listConnections) {
-                        connection.socket.emit("serverMessage", message)
+        socket.emit("userLogin", () => { return this.user })
+
+        socket.on("clientMessage", (value: any) => {
+            if (envoy.deserializeMessageFunction) {
+                const message = envoy.deserializeMessageFunction(value)
+                if (envoy.getUsersInRoomFunction) {
+                    for (const user of envoy.getUsersInRoomFunction(message)) {
+                        const listConnections = envoy.connections.get(user[envoy.options.userKey]) || []
+                        for (const connection of listConnections) {
+                            connection.socket.emit("serverMessage", message)
+                        }
                     }
                 }
             }
@@ -59,6 +63,7 @@ export default class Envoy<UserType, RoomType, MessageType> {
     options: Options<UserType, RoomType, MessageType>
     io: Server
     deserializeUserFunction: null | ((req: IncomingMessage, res: any, next: any) => UserType) = null
+    deserializeMessageFunction: null | ((value: any) => MessageType) = null
     getRoomsFunction: null | ((user: UserType) => RoomType[]) = null
     getUsersInRoomFunction: null | ((message: MessageType) => UserType[]) = null
     joinRoomFunction: null | ((room: RoomType, user: UserType) => void) = null
@@ -88,7 +93,7 @@ export default class Envoy<UserType, RoomType, MessageType> {
             const listConnections = this.connections.get(socket.user[this.options.userKey])
             if (this.getRoomsFunction) {
                 const rooms = this.getRoomsFunction(socket.user)
-                socket.emit("allRooms", rooms.map((room) => ({messages: [], room})))
+                socket.emit("allRooms", rooms.map((room) => ({ messages: [], room })))
             }
             if (listConnections === undefined) {
                 this.connections.set(socket.user[this.options.userKey], [newConnection])
@@ -120,5 +125,9 @@ export default class Envoy<UserType, RoomType, MessageType> {
 
     deserializeUser(fn: typeof this.deserializeUserFunction) {
         this.deserializeUserFunction = fn
+    }
+
+    deserializeMessage(fn: typeof this.deserializeMessageFunction) {
+        this.deserializeMessageFunction = fn
     }
 }
