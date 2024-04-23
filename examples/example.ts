@@ -88,7 +88,6 @@ envoy.getRooms((user: User): Room[] => {
 })
 
 envoy.getUsersInRoom((message: Message): User[] => {
-    console.log(rooms[0])
     return rooms[0].users
 })
 

@@ -16,7 +16,6 @@
         // socket.emit("joinRoom", ({id:"1", users:[] }, {username:"big", id: "3"}))
 
         function sendHello() {
-            console.log("button")
             socket.emit("clientMessage", {value: "hello", id: "4", roomid: "1"})
         }
 
