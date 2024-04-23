@@ -1,6 +1,6 @@
 {
   "name": "@envoy-js/express",
-  "version": "1.0.13",
+  "version": "1.0.17",
   "repository": "https://github.com/envoy-js/express.git",
   "author": "Pumpkintitan <pumpkintitan11@gmail.com>",
   "license": "MIT",
@@ -20,10 +20,11 @@
   "main": "dist/index.js",
   "module": "dist/index.js",
   "files": [
-    "dist"
+    "dist",
+    "src"
   ],
   "type": "module",
-  "types": "dist/types",
+  "types": "dist/types/index.d.ts",
   "scripts": {
     "rollup": "rollup -c",
     "build": "tsc"
