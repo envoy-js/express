@@ -95,6 +95,8 @@ envoy.getRoomHistory((room: Room) => {
     return history
 })
 
+envoy.initialize()
+
 httpServer.listen(port, () => {
     console.log(`Example app listening on port ${port}`)
 })

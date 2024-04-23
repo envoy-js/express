@@ -1,5 +1,5 @@
 import {IncomingMessage, Server as htserver} from "http";
-import {Server, Socket} from "socket.io";
+import {Server, ServerOptions, Socket} from "socket.io";
 
 declare module 'socket.io' {
     interface Socket {
@@ -8,7 +8,8 @@ declare module 'socket.io' {
 }
 
 export interface Options<UserType, RoomType, MessageType> {
-    userKey: keyof UserType
+    userKey: keyof UserType,
+    serverOptions?: Partial<ServerOptions>
 }
 
 class Connection<UserType, RoomType, MessageType> {
@@ -41,13 +42,13 @@ class Connection<UserType, RoomType, MessageType> {
 
         socket.on("clientJoinRoom", (room: RoomType, user: UserType) => {
             if (envoy.joinRoomFunction) {
-                envoy.joinRoomFunction(room, user)
+                envoy.joinRoomFunction(room, socket.user)
             }
         })
 
         socket.on("clientLeaveRoom", (room: RoomType, user: UserType) => {
             if (envoy.leaveRoomFunction) {
-                envoy.leaveRoomFunction(room, user)
+                envoy.leaveRoomFunction(room, socket.user)
             }
         })
 
@@ -74,11 +75,8 @@ export default class Envoy<UserType, RoomType, MessageType> {
 
     constructor(options: Options<UserType, RoomType, MessageType>, httpServer: htserver) {
         this.options = options
-        httpServer
         this.io = new Server(httpServer, {
-            cors: {
-                origin: "*",
-            }
+            ...options.serverOptions
         })
     }
 
@@ -88,10 +86,8 @@ export default class Envoy<UserType, RoomType, MessageType> {
             next()
         })
 
-
         this.io.on("connection", (socket) => {
             const newConnection = new Connection(socket, socket.user, this);
-            console.log("Connection created: ", socket.user)
             const listConnections = this.connections.get(socket.user[this.options.userKey])
             if (this.getRoomsFunction) {
                 const rooms = this.getRoomsFunction(socket.user)
@@ -106,6 +102,17 @@ export default class Envoy<UserType, RoomType, MessageType> {
                 listConnections.push(newConnection)
             }
         });
+    }
+
+    emitMessage(message: MessageType) {
+        if (this.getUsersInRoomFunction) {
+            for (const user of this.getUsersInRoomFunction(message)) {
+                const listConnections = this.connections.get(user[this.options.userKey]) || []
+                for (const connection of listConnections) {
+                    connection.socket.emit("serverMessage", message)
+                }
+            }
+        }
     }
 
     getUsersInRoom(fn: typeof this.getUsersInRoomFunction) {
