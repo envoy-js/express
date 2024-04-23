@@ -80,16 +80,17 @@ export default class Envoy<UserType, RoomType, MessageType> {
                 origin: "*",
             }
         })
-        const instance: Envoy<UserType, RoomType, MessageType> = this
+    }
 
-
+    initialize() {
         this.io.use((socket, next) => {
             socket.user = this.deserializeUserFunction ? this.deserializeUserFunction(socket.request, {}, next) : null
             next()
         })
 
+
         this.io.on("connection", (socket) => {
-            const newConnection = new Connection(socket, socket.user, instance);
+            const newConnection = new Connection(socket, socket.user, this);
             console.log("Connection created: ", socket.user)
             const listConnections = this.connections.get(socket.user[this.options.userKey])
             if (this.getRoomsFunction) {
